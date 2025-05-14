@@ -8,4 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class Part extends Model
 {
     use HasFactory;
+
+    public function orderPart()
+    {
+        return $this->hasMany(OrderPart::class);
+    }
 }
