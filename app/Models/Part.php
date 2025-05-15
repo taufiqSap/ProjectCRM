@@ -9,6 +9,8 @@ class Part extends Model
 {
     use HasFactory;
 
+    protected $guarded = [];
+
     public function orderPart()
     {
         return $this->hasMany(OrderPart::class);

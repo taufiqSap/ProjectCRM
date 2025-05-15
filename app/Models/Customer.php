@@ -9,6 +9,8 @@ class Customer extends Model
 {
     use HasFactory;
 
+    protected $guarded = []; // Tidak ada atribut yang diblokir
+
     public function order()
     {
         return $this->hasMany(Order::class);
