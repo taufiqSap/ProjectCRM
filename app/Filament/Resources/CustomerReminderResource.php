@@ -79,7 +79,43 @@ class CustomerReminderResource extends Resource
                         });
                     }),
             ])
-            ->actions([])
+            ->actions([Tables\Actions\Action::make('kirimReminder')
+        ->label('Kirim Notifikasi')
+        ->icon('heroicon-m-paper-airplane')
+        ->form([
+            \Filament\Forms\Components\Select::make('jenis_servis')
+                ->label('Jenis Servis')
+                ->options([
+                    'ganti_oli' => 'Ganti Oli',
+                    'service_ringan' => 'Service Ringan',
+                    'service_berat' => 'Service Berat',
+                ])
+                ->required(),
+        ])
+        ->action(function (array $data, Customer $record) {
+            $pesan = match ($data['jenis_servis']) {
+                'ganti_oli' => "Halo {$record->name}, sudah lebih dari 3 bulan sejak servis terakhir. Jangan lupa ganti oli ya!",
+                'service_ringan' => "Halo {$record->name}, waktunya melakukan service ringan. Hubungi kami segera!",
+                'service_berat' => "Halo {$record->name}, kendaraan Anda mungkin perlu service berat. Kami siap membantu!",
+                default => "Halo {$record->name}, pengingat untuk melakukan servis kendaraan Anda.",
+            };
+
+            if (!$record->no_telp) {
+                \Filament\Notifications\Notification::make()
+                    ->danger()
+                    ->title('Nomor telepon tidak tersedia.')
+                    ->send();
+                return;
+            }
+
+            // Kirim WA via service yang kamu buat
+            \App\Services\WhatsappService::send($record->no_telp, $pesan);
+
+            \Filament\Notifications\Notification::make()
+                ->success()
+                ->title('Reminder berhasil dikirim ke WhatsApp.')
+                ->send();
+        }),])
             ->bulkActions([]);
     }
 
