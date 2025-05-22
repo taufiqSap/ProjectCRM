@@ -39,7 +39,10 @@ class ExcelImportPage extends Page implements HasForms
         return [
             FileUpload::make('file')
                 ->label('Import Excel File')
-                ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
+                ->acceptedFileTypes([
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+                    'application/vnd.ms-excel' // .xls
+                ])
                 ->directory('excel-uploads')
                 ->required(),
         ];
@@ -83,8 +86,6 @@ class ExcelImportPage extends Page implements HasForms
                     ['category' => $row['service_category'], 'package' => $row['service_package']],
                     ['created_at' => now(), 'updated_at' => now()]
                 );
-
-                
 
         
                 // 7. Part

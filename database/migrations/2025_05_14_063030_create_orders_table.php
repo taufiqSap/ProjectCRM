@@ -21,7 +21,7 @@ return new class extends Migration
             $table->foreignId('vehicle_id')->constrained('vehicles')->onDelete('cascade');
             $table->foreignId('order_part_id')->constrained('order_parts')->onDelete('cascade');
             $table->foreignId('technician_id')->constrained('technicians')->onDelete('cascade');
-            $table->float('total_oil_service');
+            $table->decimal('total_oil_service', 12, 2);
             $table->timestamps();
         });
     }

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('order_parts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('part_id')->constrained('parts')->onDelete('cascade');
-            $table->float('part_price');
+            $table->decimal('part_price', 12, 2);
             $table->integer('qty');
             $table->timestamps();
         });
