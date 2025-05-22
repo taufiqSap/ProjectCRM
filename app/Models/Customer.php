@@ -29,4 +29,9 @@ class Customer extends Model
         return $date ? \Carbon\Carbon::parse($date)->format('d M Y') : null;
     }
 
+    public function serviceOrder()
+    {
+        return $this->hasMany(serviceOrder:: class);
+    }
+
 }

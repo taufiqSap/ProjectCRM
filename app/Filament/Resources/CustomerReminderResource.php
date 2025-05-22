@@ -79,7 +79,8 @@ class CustomerReminderResource extends Resource
                         });
                     }),
             ])
-            ->actions([Tables\Actions\Action::make('kirimReminder')
+            ->actions([
+                Tables\Actions\Action::make('kirimReminder')
         ->label('Kirim Notifikasi')
         ->icon('heroicon-m-paper-airplane')
         ->form([
@@ -92,31 +93,64 @@ class CustomerReminderResource extends Resource
                 ])
                 ->required(),
         ])
-        ->action(function (array $data, Customer $record) {
-            $pesan = match ($data['jenis_servis']) {
-                'ganti_oli' => "Halo {$record->name}, sudah lebih dari 3 bulan sejak servis terakhir. Jangan lupa ganti oli ya!",
-                'service_ringan' => "Halo {$record->name}, waktunya melakukan service ringan. Hubungi kami segera!",
-                'service_berat' => "Halo {$record->name}, kendaraan Anda mungkin perlu service berat. Kami siap membantu!",
-                default => "Halo {$record->name}, pengingat untuk melakukan servis kendaraan Anda.",
-            };
+      ->action(function (Customer $record) {
+    $lastOrder = DB::table('orders')
+        ->where('customer_id', $record->id)
+        ->orderByDesc('date')
+        ->first();
 
-            if (!$record->no_telp) {
-                \Filament\Notifications\Notification::make()
-                    ->danger()
-                    ->title('Nomor telepon tidak tersedia.')
-                    ->send();
-                return;
-            }
+    if (!$lastOrder) {
+        \Filament\Notifications\Notification::make()
+            ->danger()
+            ->title('Pelanggan ini belum pernah servis.')
+            ->send();
+        return;
+    }
 
-            // Kirim WA via service yang kamu buat
-            \App\Services\WhatsappService::send($record->no_telp, $pesan);
+    $lastServiceDate = \Carbon\Carbon::parse($lastOrder->date);
+    $diffInMonths = $lastServiceDate->diffInMonths(now());
 
-            \Filament\Notifications\Notification::make()
-                ->success()
-                ->title('Reminder berhasil dikirim ke WhatsApp.')
-                ->send();
-        }),])
-            ->bulkActions([]);
+    if ($diffInMonths < 3) {
+        \Filament\Notifications\Notification::make()
+            ->info()
+            ->title("Servis terakhir baru $diffInMonths bulan lalu. Belum waktunya kirim notifikasi.")
+            ->send();
+        return;
+    }
+
+    // Ambil kategori servis dari service_package_id
+    $serviceCategory = DB::table('service_categories')
+        ->where('id', $lastOrder->service_package_id)
+        ->value('package');
+
+    $pesan = match (strtolower($serviceCategory)) {
+        'ganti oli' => "Halo {$record->name}, sudah lebih dari 3 bulan sejak ganti oli terakhir. Jangan lupa ganti oli ya!",
+        'service ringan' => "Halo {$record->name}, sudah lebih dari 3 bulan sejak servis ringan terakhir. Waktunya service ringan lagi!",
+        'service berat' => "Halo {$record->name}, sudah lebih dari 3 bulan sejak servis berat terakhir. Kami siap bantu servis berat Anda!",
+        default => "Halo {$record->name}, sudah lebih dari 3 bulan sejak servis terakhir. Jangan lupa servis kendaraan Anda!",
+    };
+
+    if (!$record->no_telp) {
+        \Filament\Notifications\Notification::make()
+            ->danger()
+            ->title('Nomor telepon tidak tersedia.')
+            ->send();
+        return;
+    }
+
+    \App\Services\WhatsappService::send($record->no_telp, $pesan);
+
+    \Filament\Notifications\Notification::make()
+        ->success()
+        ->title('Reminder berhasil dikirim ke WhatsApp.')
+        ->send();
+})
+
+
+        ])
+            ->bulkActions([
+                   Tables\Actions\DeleteBulkAction::make(),
+            ]);
     }
 
 
