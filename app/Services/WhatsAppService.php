@@ -2,13 +2,14 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Http;
+
 class WhatsappService
 {
     public static function send(string $phone, string $message)
     {
-        // isi dengan API WhatsApp yang ingin kita buat
-        $url = ''; // url api whatsapp disini
-        $token = env(''); // token pi masukkan di .env, lalu diketik di dalam itu
+        $url = env('WHATSAPP_API_URL');
+        $token = env('  N');
 
         $response = Http::withHeaders([
             'Authorization' => $token,
@@ -17,8 +18,10 @@ class WhatsappService
             'message' => $message,
         ]);
 
+        if (!$response->successful()) {
+            throw new \Exception('Gagal mengirim pesan WhatsApp: ' . $response->body());
+        }
+
         return $response->json();
     }
 }
-
-?>
