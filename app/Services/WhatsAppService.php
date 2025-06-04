@@ -8,14 +8,14 @@ class WhatsappService
 {
     public static function send(string $phone, string $message)
     {
-        $url = env('WHATSAPP_API_URL');
-        $token = env('  N');
+        $url = 'https://app.saungwa.com/api/create-message';
 
-        $response = Http::withHeaders([
-            'Authorization' => $token,
-        ])->asForm()->post($url, [
-            'target' => $phone,
-            'message' => $message,
+        $response = Http::asMultipart()->post($url, [
+            ['name' => 'appkey', 'contents' => env('SAUNGWA_APP_KEY')],
+            ['name' => 'authkey', 'contents' => env('SAUNGWA_AUTH_KEY')],
+            ['name' => 'to', 'contents' => $phone],
+            ['name' => 'message', 'contents' => $message],
+            ['name' => 'sandbox', 'contents' => 'false'],
         ]);
 
         if (!$response->successful()) {
