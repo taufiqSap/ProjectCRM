@@ -146,7 +146,7 @@ class CustomerReminderResource extends Resource
     //     }),
 
 Tables\Actions\Action::make('kirimReminderPerKategoriManual')
-    ->label('Kirim Reminder per Kategori (Manual)')
+    ->label('Kirim Reminder')
     ->icon('heroicon-o-paper-airplane')
     ->form([
         \Filament\Forms\Components\Select::make('kategori_id')
