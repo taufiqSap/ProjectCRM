@@ -10,6 +10,7 @@ use Filament\Tables\Columns\TextColumn;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Forms\Get;
 
 class CustomerReminderResource extends Resource
 {
@@ -85,79 +86,90 @@ class CustomerReminderResource extends Resource
                    Tables\Actions\DeleteBulkAction::make(),
             ])
             ->headerActions([
-    Tables\Actions\Action::make('kirimSemuaReminder')
-        ->label('Kirim Semua Reminder')
-        ->icon('heroicon-m-bell-alert')
-        ->requiresConfirmation()
-        ->action(function () {
-            $thresholdDate = now()->subMonths(3);
+    // Tables\Actions\Action::make('kirimSemuaReminder')
+    //     ->label('Kirim Semua Reminder')
+    //     ->icon('heroicon-m-bell-alert')
+    //     ->requiresConfirmation()
+    //     ->action(function () {
+    //         $thresholdDate = now()->subMonths(3);
 
-            $customers = Customer::whereIn('id', function ($query) use ($thresholdDate) {
-                $query->select('customer_id')
-                    ->from('orders')
-                    ->whereIn('service_package_id', function ($sub) {
-                        $sub->select('id')
-                            ->from('service_categories')
-                            ->whereIn('package', ['Ganti Oli Gear','Ganti Oli Mesin', 'Service Ringan']);
-                    })
-                    ->groupBy('customer_id')
-                    ->havingRaw('MAX(date) < ?', [$thresholdDate]);
-            })->get();
+    //         $customers = Customer::whereIn('id', function ($query) use ($thresholdDate) {
+    //             $query->select('customer_id')
+    //                 ->from('orders')
+    //                 ->whereIn('service_package_id', function ($sub) {
+    //                     $sub->select('id')
+    //                         ->from('service_categories')
+    //                         ->whereIn('package', ['Ganti Oli Gear','Ganti Oli Mesin', 'Service Ringan']);
+    //                 })
+    //                 ->groupBy('customer_id')
+    //                 ->havingRaw('MAX(date) < ?', [$thresholdDate]);
+    //         })->get();
 
-            $success = 0;
-            $failed = 0;
+    //         $success = 0;
+    //         $failed = 0;
 
-            foreach ($customers as $customer) {
-                $lastOrder = DB::table('orders')
-                    ->where('customer_id', $customer->id)
-                    ->orderByDesc('date')
-                    ->first();
+    //         foreach ($customers as $customer) {
+    //             $lastOrder = DB::table('orders')
+    //                 ->where('customer_id', $customer->id)
+    //                 ->orderByDesc('date')
+    //                 ->first();
 
-                if (!$lastOrder || !$customer->no_telp) {
-                    $failed++;
-                    continue;
-                }
+    //             if (!$lastOrder || !$customer->no_telp) {
+    //                 $failed++;
+    //                 continue;
+    //             }
 
-                $serviceCategory = DB::table('service_categories')
-                    ->where('id', $lastOrder->service_package_id)
-                    ->value('package');
+    //             $serviceCategory = DB::table('service_categories')
+    //                 ->where('id', $lastOrder->service_package_id)
+    //                 ->value('package');
 
-                if (!in_array($serviceCategory, ['Ganti Oli Gear','Ganti Oli Mesin', 'Service Ringan'])) {
-                    $failed++;
-                    continue;
-                }
+    //             if (!in_array($serviceCategory, ['Ganti Oli Gear','Ganti Oli Mesin', 'Service Ringan'])) {
+    //                 $failed++;
+    //                 continue;
+    //             }
 
-                $pesan = "Halo, sudah lebih dari 3 bulan Anda servis dan ganti oli, tolong segera servis ya.";
+    //             $pesan = "Halo, sudah lebih dari 3 bulan Anda servis dan ganti oli, tolong segera servis ya.";
 
-                try {
-                    \App\Services\WhatsappService::send($customer->no_telp, $pesan);
-                    $success++;
-                } catch (\Exception $e) {
-                    $failed++;
-                }
-            }
+    //             try {
+    //                 \App\Services\WhatsappService::send($customer->no_telp, $pesan);
+    //                 $success++;
+    //             } catch (\Exception $e) {
+    //                 $failed++;
+    //             }
+    //         }
 
-            \Filament\Notifications\Notification::make()
-                ->title('Reminder Massal Selesai')
-                ->body("Berhasil dikirim: {$success}, Gagal: {$failed}")
-                ->success()
-                ->send();
-        }),
+    //         \Filament\Notifications\Notification::make()
+    //             ->title('Reminder Massal Selesai')
+    //             ->body("Berhasil dikirim: {$success}, Gagal: {$failed}")
+    //             ->success()
+    //             ->send();
+    //     }),
 
-       Tables\Actions\Action::make('kirimReminderPerKategoriManual')
+Tables\Actions\Action::make('kirimReminderPerKategoriManual')
     ->label('Kirim Reminder per Kategori (Manual)')
     ->icon('heroicon-o-paper-airplane')
     ->form([
         \Filament\Forms\Components\Select::make('kategori_id')
             ->label('Pilih Kategori Servis')
             ->options(DB::table('service_categories')->pluck('package', 'id')->toArray())
-            ->required(),
+            ->required()
+            ->reactive(),
 
         \Filament\Forms\Components\Select::make('customer_ids')
             ->label('Pilih Pelanggan')
-            ->options(
-                Customer::all()->pluck('name', 'id')->toArray()
-            )
+            ->options(function (Get $get) {
+                $kategoriId = $get('kategori_id');
+                if (!$kategoriId) {
+                    return [];
+                }
+                $customerIds = DB::table('orders')
+                    ->where('service_package_id', $kategoriId)
+                    ->pluck('customer_id')
+                    ->unique()
+                    ->toArray();
+
+                return Customer::whereIn('id', $customerIds)->pluck('name', 'id')->toArray();
+            })
             ->multiple()
             ->searchable()
             ->required(),
