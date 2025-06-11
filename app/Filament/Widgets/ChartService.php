@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Filament\Widgets;
 
 use Filament\Widgets\ChartWidget;
@@ -11,27 +10,26 @@ class ChartService extends ChartWidget
 
     protected function getData(): array
     {
-        // Gunakan tabel 'orders' sesuai ERD
-        $serviceData = DB::table('orders')
-            ->selectRaw('MONTH(date) as month, COUNT(*) as total')
-            ->groupByRaw('MONTH(date)')
+        $start = session('dashboard_start_date');
+        $end = session('dashboard_end_date');
+
+        $query = DB::table('orders')
+            ->selectRaw('MONTH(date) as month, COUNT(*) as total');
+
+        if ($start) $query->whereDate('date', '>=', $start);
+        if ($end) $query->whereDate('date', '<=', $end);
+
+        $data = $query->groupByRaw('MONTH(date)')
             ->orderByRaw('MONTH(date)')
             ->pluck('total', 'month');
 
-        $jumlahService = [];
+        $result = [];
         for ($i = 1; $i <= 12; $i++) {
-            $jumlahService[] = $serviceData[$i] ?? 0;
+            $result[] = $data[$i] ?? 0;
         }
 
         return [
-            'datasets' => [
-                [
-                    'label' => 'Jumlah Service',
-                    'data' => $jumlahService,
-                    'backgroundColor' => '#4F46E5',
-                    'borderColor' => '#6366F1',
-                ],
-            ],
+            'datasets' => [[ 'data' => $result ]],
             'labels' => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
         ];
     }
