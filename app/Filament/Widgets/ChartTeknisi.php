@@ -11,31 +11,57 @@ class ChartTeknisi extends ChartWidget
 
     protected function getType(): string
     {
-        return 'bar'; // Bisa diganti ke 'pie' atau 'doughnut' sesuai preferensi
+        return 'bar';
     }
 
     protected function getData(): array
     {
-        // Hitung jumlah order yang ditangani oleh masing-masing teknisi
-        $data = DB::table('orders') // ← ubah dari 'order' ke 'orders'
+        $start = session('dashboard_start_date');
+        $end = session('dashboard_end_date');
+
+        $query = DB::table('orders')
             ->join('technicians', 'orders.technician_id', '=', 'technicians.id')
             ->select('technicians.name', DB::raw('COUNT(orders.order_id) as jumlah_service'))
             ->groupBy('technicians.id', 'technicians.name')
             ->orderByDesc('jumlah_service')
-            ->limit(5)
-            ->get();
+            ->limit(5);
 
+        // Apply date filter if exists
+        if ($start) $query->whereDate('orders.date', '>=', $start);
+        if ($end) $query->whereDate('orders.date', '<=', $end);
+
+        $data = $query->get();
+
+        // If no data, return empty chart
+        if ($data->isEmpty()) {
+            return [
+                'datasets' => [
+                    [
+                        'label' => 'Jumlah Service',
+                        'data' => [],
+                        'backgroundColor' => [],
+                        'borderColor' => '#ffffff',
+                    ],
+                ],
+                'labels' => [],
+            ];
+        }
 
         $labels = $data->pluck('name')->toArray();
         $values = $data->pluck('jumlah_service')->toArray();
+
+        // Generate colors based on data count
+        $colors = ['#60A5FA', '#34D399', '#FBBF24', '#A78BFA', '#F87171'];
+        $backgroundColor = array_slice($colors, 0, count($values));
 
         return [
             'datasets' => [
                 [
                     'label' => 'Jumlah Service',
                     'data' => $values,
-                    'backgroundColor' => ['#60A5FA', '#34D399', '#FBBF24', '#A78BFA', '#F87171'],
+                    'backgroundColor' => $backgroundColor,
                     'borderColor' => '#ffffff',
+                    'borderWidth' => 2,
                 ],
             ],
             'labels' => $labels,

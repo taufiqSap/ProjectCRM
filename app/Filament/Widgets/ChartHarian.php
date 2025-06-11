@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class ChartHarian extends ChartWidget
 {
@@ -16,37 +17,53 @@ class ChartHarian extends ChartWidget
 
     protected function getData(): array
     {
-        $start = session('dashboard_start_date') ?? now()->startOfMonth()->toDateString();
-        $end = session('dashboard_end_date') ?? now()->endOfMonth()->toDateString();
+        $start = session('dashboard_start_date');
+        $end = session('dashboard_end_date');
 
-        // Ambil tanggal dalam rentang
-        $dates = collect();
-        $current = \Carbon\Carbon::parse($start);
-        $last = \Carbon\Carbon::parse($end);
+        $query = DB::table('orders as o')
+            ->join('order_details as od', 'o.order_detail_id', '=', 'od.id')
+            ->join('order_parts as op', 'o.order_part_id', '=', 'op.id')
+            ->selectRaw('DATE(o.date) as tanggal, SUM(COALESCE(od.labor_cost_service, 0) + (COALESCE(op.qty, 0) * COALESCE(op.part_price, 0))) as total')
+            ->groupByRaw('DATE(o.date)')
+            ->orderBy('tanggal');
 
-        while ($current <= $last) {
-            $dates->push($current->toDateString());
-            $current->addDay();
+        // Apply date filter if exists
+        if ($start) $query->whereDate('o.date', '>=', $start);
+        if ($end) $query->whereDate('o.date', '<=', $end);
+
+        $data = $query->pluck('total', 'tanggal');
+
+        // If no data, return empty chart
+        if ($data->isEmpty()) {
+            return [
+                'datasets' => [
+                    [
+                        'label' => 'Penghasilan',
+                        'data' => [],
+                        'fill' => false,
+                        'borderColor' => '#4f46e5',
+                        'backgroundColor' => 'rgba(79, 70, 229, 0.1)',
+                    ],
+                ],
+                'labels' => [],
+            ];
         }
 
-        // Query data harian
-        $data = DB::table('orders')
-            ->join('order_details', 'orders.order_detail_id', '=', 'order_details.id')
-            ->selectRaw('DATE(orders.date) as date, SUM(order_details.labor_cost_service) as total')
-            ->whereDate('orders.date', '>=', $start)
-            ->whereDate('orders.date', '<=', $end)
-            ->groupByRaw('DATE(orders.date)')
-            ->pluck('total', 'date');
-
-        // Susun hasil sesuai tanggal
-        $result = [];
-        foreach ($dates as $date) {
-            $result[] = $data[$date] ?? 0;
-        }
+        $labels = $data->keys()->map(fn ($d) => Carbon::parse($d)->format('d M'))->toArray();
+        $values = $data->values()->toArray();
 
         return [
-            'datasets' => [[ 'data' => $result ]],
-            'labels' => $dates->map(fn($d) => \Carbon\Carbon::parse($d)->format('d M'))->toArray(),
+            'datasets' => [
+                [
+                    'label' => 'Penghasilan',
+                    'data' => $values,
+                    'fill' => false,
+                    'borderColor' => '#4f46e5',
+                    'backgroundColor' => 'rgba(79, 70, 229, 0.1)',
+                    'tension' => 0.4,
+                ],
+            ],
+            'labels' => $labels,
         ];
     }
 }
