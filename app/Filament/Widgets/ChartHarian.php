@@ -20,20 +20,23 @@ class ChartHarian extends ChartWidget
         $start = session('dashboard_start_date');
         $end = session('dashboard_end_date');
 
-        $query = DB::table('orders as o')
+        // Subquery untuk mengambil invoice unik per tanggal
+        $uniqueInvoices = DB::table('orders as o')
             ->join('order_details as od', 'o.order_detail_id', '=', 'od.id')
-            ->join('order_parts as op', 'o.order_part_id', '=', 'op.id')
-            ->selectRaw('DATE(o.date) as tanggal, SUM(COALESCE(od.total_amount, 0) + (COALESCE(op.qty, 0) * COALESCE(op.part_price, 0))) as total')
-            ->groupByRaw('DATE(o.date)')
-            ->orderBy('tanggal');
+            ->selectRaw('od.no_invoice, DATE(o.date) as tanggal, od.total_amount')
+            ->when($start, fn($q) => $q->whereDate('o.date', '>=', $start))
+            ->when($end, fn($q) => $q->whereDate('o.date', '<=', $end))
+            ->groupBy('od.no_invoice', 'od.total_amount', DB::raw('DATE(o.date)'));
 
-        // Apply date filter if exists
-        if ($start) $query->whereDate('o.date', '>=', $start);
-        if ($end) $query->whereDate('o.date', '<=', $end);
+        // Bungkus sebagai subquery dan jumlahkan total_amount per tanggal
+        $query = DB::table(DB::raw("({$uniqueInvoices->toSql()}) as invoice_summary"))
+            ->mergeBindings($uniqueInvoices)
+            ->selectRaw('tanggal, SUM(total_amount) as total')
+            ->groupBy('tanggal')
+            ->orderBy('tanggal');
 
         $data = $query->pluck('total', 'tanggal');
 
-        // If no data, return empty chart
         if ($data->isEmpty()) {
             return [
                 'datasets' => [

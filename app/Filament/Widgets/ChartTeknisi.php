@@ -19,25 +19,30 @@ class ChartTeknisi extends ChartWidget
         $start = session('dashboard_start_date');
         $end = session('dashboard_end_date');
 
-        $query = DB::table('orders')
-            ->join('technicians', 'orders.technician_id', '=', 'technicians.id')
-            ->select('technicians.name', DB::raw('COUNT(orders.order_id) as jumlah_service'))
-            ->groupBy('technicians.id', 'technicians.name')
-            ->orderByDesc('jumlah_service')
-            ->limit(5);
+        // Subquery untuk ambil invoice unik per teknisi
+        $subQuery = DB::table('orders as o')
+            ->join('order_details as od', 'o.order_detail_id', '=', 'od.id')
+            ->select('o.technician_id', 'od.no_invoice')
+            ->when($start, fn ($q) => $q->whereDate('o.date', '>=', $start))
+            ->when($end, fn ($q) => $q->whereDate('o.date', '<=', $end))
+            ->groupBy('o.technician_id', 'od.no_invoice');
 
-        // Apply date filter if exists
-        if ($start) $query->whereDate('orders.date', '>=', $start);
-        if ($end) $query->whereDate('orders.date', '<=', $end);
+        // Bungkus sebagai subquery dan hitung jumlah invoice per teknisi
+        $query = DB::table(DB::raw("({$subQuery->toSql()}) as unique_invoices"))
+            ->mergeBindings($subQuery)
+            ->join('technicians as t', 'unique_invoices.technician_id', '=', 't.id')
+            ->select('t.name', DB::raw('COUNT(*) as jumlah_invoice'))
+            ->groupBy('t.id', 't.name')
+            ->orderByDesc('jumlah_invoice')
+            ->limit(5);
 
         $data = $query->get();
 
-        // If no data, return empty chart
         if ($data->isEmpty()) {
             return [
                 'datasets' => [
                     [
-                        'label' => 'Jumlah Service',
+                        'label' => 'Jumlah Invoice',
                         'data' => [],
                         'backgroundColor' => [],
                         'borderColor' => '#ffffff',
@@ -48,16 +53,15 @@ class ChartTeknisi extends ChartWidget
         }
 
         $labels = $data->pluck('name')->toArray();
-        $values = $data->pluck('jumlah_service')->toArray();
+        $values = $data->pluck('jumlah_invoice')->toArray();
 
-        // Generate colors based on data count
         $colors = ['#60A5FA', '#34D399', '#FBBF24', '#A78BFA', '#F87171'];
         $backgroundColor = array_slice($colors, 0, count($values));
 
         return [
             'datasets' => [
                 [
-                    'label' => 'Jumlah Service',
+                    'label' => 'Jumlah Invoice',
                     'data' => $values,
                     'backgroundColor' => $backgroundColor,
                     'borderColor' => '#ffffff',

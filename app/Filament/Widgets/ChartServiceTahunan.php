@@ -14,15 +14,22 @@ class ChartServiceTahunan extends ChartWidget
         $start = session('dashboard_start_date');
         $end = session('dashboard_end_date');
 
-        $query = DB::table('orders')
-            ->selectRaw('YEAR(date) as year, COUNT(*) as total');
+        // Subquery untuk mengambil invoice unik per tahun
+        $subQuery = DB::table('orders as o')
+            ->join('order_details as od', 'o.order_detail_id', '=', 'od.id')
+            ->selectRaw('YEAR(o.date) as year, od.no_invoice')
+            ->when($start, fn($q) => $q->whereDate('o.date', '>=', $start))
+            ->when($end, fn($q) => $q->whereDate('o.date', '<=', $end))
+            ->groupBy('year', 'od.no_invoice');
 
-        if ($start) $query->whereDate('date', '>=', $start);
-        if ($end) $query->whereDate('date', '<=', $end);
+        // Hitung jumlah invoice unik per tahun dari subquery
+        $query = DB::table(DB::raw("({$subQuery->toSql()}) as unique_invoices"))
+            ->mergeBindings($subQuery)
+            ->selectRaw('year, COUNT(*) as total')
+            ->groupBy('year')
+            ->orderBy('year');
 
-        $data = $query->groupByRaw('YEAR(date)')
-            ->orderByRaw('YEAR(date)')
-            ->pluck('total', 'year');
+        $data = $query->pluck('total', 'year');
 
         return [
             'datasets' => [
@@ -37,6 +44,7 @@ class ChartServiceTahunan extends ChartWidget
 
     protected function getType(): string
     {
-        return 'bar'; // Bisa juga 'line' atau 'pie' sesuai preferensi
+        return 'bar'; // Ganti ke 'line' jika ingin tampilan garis
     }
 }
+
