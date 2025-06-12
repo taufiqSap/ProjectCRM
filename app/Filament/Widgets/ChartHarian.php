@@ -23,7 +23,7 @@ class ChartHarian extends ChartWidget
         $query = DB::table('orders as o')
             ->join('order_details as od', 'o.order_detail_id', '=', 'od.id')
             ->join('order_parts as op', 'o.order_part_id', '=', 'op.id')
-            ->selectRaw('DATE(o.date) as tanggal, SUM(COALESCE(od.labor_cost_service, 0) + (COALESCE(op.qty, 0) * COALESCE(op.part_price, 0))) as total')
+            ->selectRaw('DATE(o.date) as tanggal, SUM(COALESCE(od.total_amount, 0) + (COALESCE(op.qty, 0) * COALESCE(op.part_price, 0))) as total')
             ->groupByRaw('DATE(o.date)')
             ->orderBy('tanggal');
 

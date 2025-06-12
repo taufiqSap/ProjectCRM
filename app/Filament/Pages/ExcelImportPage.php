@@ -109,14 +109,14 @@ class ExcelImportPage extends Page implements HasForms
 
                  
                 if (!isset($row['no_invoice']) || trim($row['no_invoice']) === '' || 
-                    !isset($row['labor_cost_service']) || trim($row['labor_cost_service']) === '') {
+                    !isset($row['total_amount']) || trim($row['total_amount']) === '') {
                     throw new \Exception("Data order detail tidak lengkap di baris ke-{$row['row_id']}");
                 }
 
                 // 1. Buat OrderDetail dulu
                 $detail = OrderDetail::create([
                     'no_invoice' => $row['no_invoice'],
-                    'labor_cost_service' => (float)$row['labor_cost_service'], // pastikan tipe data float
+                    'total_amount' => (float)$row['total_amount'], // pastikan tipe data float
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);

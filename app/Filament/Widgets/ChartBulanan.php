@@ -22,7 +22,7 @@ class ChartBulanan extends ChartWidget
         $query = DB::table('orders')
             ->join('order_details', 'orders.order_detail_id', '=', 'order_details.id')
             ->join('order_parts as op', 'orders.order_part_id', '=', 'op.id')
-            ->selectRaw('MONTH(orders.date) as month, SUM(order_details.labor_cost_service + (op.qty * op.part_price)) as total')
+            ->selectRaw('MONTH(orders.date) as month, SUM(order_details.total_amount + (op.qty * op.part_price)) as total')
             ->whereDate('orders.date', '>=', $start)
             ->whereDate('orders.date', '<=', $end)
             ->groupByRaw('MONTH(orders.date)')

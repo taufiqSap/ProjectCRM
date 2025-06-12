@@ -84,11 +84,13 @@ class ExcelProcessorService
         $assoc['labor_cost_service'] = str_replace(',', '', $assoc['labor_cost_service']);
         $assoc['part_price'] = str_replace(',', '', $assoc['part_price']);
         $assoc['total_oil_service'] = str_replace(',', '', $assoc['total_oil_service']);
+        $assoc['total_amount'] = str_replace(',', '', $assoc['total_amount']);
 
         // Validasi jika bukan angka, isi dengan 0
         $assoc['labor_cost_service'] = is_numeric($assoc['labor_cost_service']) ? $assoc['labor_cost_service'] : 0;
         $assoc['part_price'] = is_numeric($assoc['part_price']) ? $assoc['part_price'] : 0;
         $assoc['total_oil_service'] = is_numeric($assoc['total_oil_service']) ? $assoc['total_oil_service'] : 0;
+        $assoc['total_amount'] = is_numeric($assoc['total_amount']) ? $assoc['total_amount'] : 0;
 
         $assoc['row_id'] = $idx + 1;
         return $assoc;

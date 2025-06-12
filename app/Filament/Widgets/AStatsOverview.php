@@ -18,7 +18,7 @@ class AStatsOverview extends BaseWidget
 
         $averageAmount = DB::table('orders')
             ->join('order_details', 'orders.order_detail_id', '=', 'order_details.id')
-            ->avg('order_details.labor_cost_service');
+            ->avg('order_details.total_amount');
 
         return [
             Stat::make('Total Transaction', number_format($totalTransaksi, 0, ',', '.')),

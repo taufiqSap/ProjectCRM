@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('order_details', function (Blueprint $table) {
             $table->id();
             $table->string('no_invoice', 50);
-            $table->decimal('labor_cost_service', 12, 2);
+            $table->decimal('total_amount', 12, 2);
             $table->timestamps();
         });
     }

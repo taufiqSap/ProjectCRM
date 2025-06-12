@@ -16,10 +16,10 @@ class Customer extends Model
     {
         return $this->hasMany(Order::class);
     }
-    public function orders()
-    {
-        return $this->hasMany(Order::class, 'customer_id');
-    }
+    // public function orders()
+    // {
+    //     return $this->hasMany(Order::class, 'customer_id');
+    // }
     public function getLastServiceDateAttribute()
     {
         $date = DB::table('orders')
@@ -29,9 +29,9 @@ class Customer extends Model
         return $date ? \Carbon\Carbon::parse($date)->format('d M Y') : null;
     }
 
-    public function serviceOrder()
-    {
-        return $this->hasMany(serviceOrder:: class);
-    }
+    // public function serviceOrder()
+    // {
+    //     return $this->hasMany(serviceOrder:: class);
+    // }
 
 }
