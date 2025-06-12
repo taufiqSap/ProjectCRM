@@ -18,15 +18,22 @@ class ChartBulanan extends ChartWidget
     {
         $start = session('dashboard_start_date') ?? now()->startOfMonth()->toDateString();
         $end = session('dashboard_end_date') ?? now()->endOfMonth()->toDateString();
+        
 
-        $query = DB::table('orders')
-            ->join('order_details', 'orders.order_detail_id', '=', 'order_details.id')
-            ->join('order_parts as op', 'orders.order_part_id', '=', 'op.id')
-            ->selectRaw('MONTH(orders.date) as month, SUM(order_details.total_amount + (op.qty * op.part_price)) as total')
-            ->whereDate('orders.date', '>=', $start)
-            ->whereDate('orders.date', '<=', $end)
-            ->groupByRaw('MONTH(orders.date)')
-            ->orderByRaw('MONTH(orders.date)');
+
+        $uniqueInvoices = DB::table('orders')
+        ->join('order_details', 'orders.order_detail_id', '=', 'order_details.id')
+        ->whereBetween('orders.date', [$start, $end])
+        ->selectRaw('order_details.no_invoice, order_details.total_amount, MONTH(orders.date) as month')
+        ->groupBy('order_details.no_invoice', 'order_details.total_amount', DB::raw('MONTH(orders.date)'));
+
+    // Step 2: Bungkus sebagai subquery dan hitung jumlah total_amount per bulan
+    $query = DB::table(DB::raw("({$uniqueInvoices->toSql()}) as invoice_summary"))
+        ->mergeBindings($uniqueInvoices) // penting agar bindings dari subquery ikut
+        ->selectRaw('month, SUM(total_amount) as total')
+        ->groupBy('month')
+        ->orderBy('month');
+
 
         $data = $query->pluck('total', 'month');
 
