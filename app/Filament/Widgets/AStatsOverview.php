@@ -11,11 +11,17 @@ class AStatsOverview extends BaseWidget
 {
     protected function getStats(): array
     {
-        // Ambil filter tanggal dari session jika ada
         $start = session('dashboard_start_date');
         $end = session('dashboard_end_date');
 
-        // Hitung total transaksi unik berdasarkan no_invoice yang benar-benar digunakan (join orders)
+        if (!$start || !$end) {
+            return [
+                Stat::make('Total Transaction', '-'),
+                Stat::make('Total Customer', '-'),
+                Stat::make('Average Amount / Transaction', '-'),
+            ];
+        }
+
         $totalTransaksi = DB::table('orders as o')
             ->join('order_details as od', 'o.order_detail_id', '=', 'od.id')
             ->when($start, fn($q) => $q->whereDate('o.date', '>=', $start))
@@ -24,10 +30,8 @@ class AStatsOverview extends BaseWidget
             ->distinct()
             ->count('od.no_invoice');
 
-        // Hitung total customer unik (berdasarkan nama saja)
         $totalCustomer = Customer::distinct('name')->count('name');
 
-        // Hitung average amount per transaksi (yang benar-benar digunakan dalam orders)
         $averageAmount = DB::table('orders as o')
             ->join('order_details as od', 'o.order_detail_id', '=', 'od.id')
             ->when($start, fn($q) => $q->whereDate('o.date', '>=', $start))

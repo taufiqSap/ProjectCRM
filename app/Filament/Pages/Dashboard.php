@@ -23,39 +23,34 @@ class Dashboard extends Page implements Forms\Contracts\HasForms
     public function mount(): void
     {
         $this->form->fill([
-            'startDate' => session('dashboard_start_date') ?? now()->startOfMonth()->toDateString(),
-            'endDate' => session('dashboard_end_date') ?? now()->endOfMonth()->toDateString(),
+            'startDate' => session('dashboard_start_date'),
+            'endDate' => session('dashboard_end_date'),
         ]);
     }
 
-  protected function getFormSchema(): array
-{
-    return [
-        Section::make('Filter Tanggal')
-            ->description('Pilih rentang tanggal untuk menampilkan data pada dashboard')
-            ->schema([
-                DatePicker::make('startDate')
-                    ->label('Dari Tanggal')
-                    ->required()
-                    ->default(now()->startOfMonth())
-                    ->native(false), // Ini penting agar datepicker tidak dibatasi OS
+    protected function getFormSchema(): array
+    {
+        return [
+            Section::make('Filter Tanggal')
+                ->description('Pilih rentang tanggal untuk menampilkan data pada dashboard')
+                ->schema([
+                    DatePicker::make('startDate')
+                        ->label('Dari Tanggal')
+                        ->native(false),
 
-                DatePicker::make('endDate')
-                    ->label('Sampai Tanggal')
-                    ->required()
-                   // ->minDate(fn ($get) => $get('startDate'))
-                    ->default(now()->endOfMonth())
-                    ->native(false), // Penting juga di sini
-            ])
-            ->columns(2)
-    ];
-}
+                    DatePicker::make('endDate')
+                        ->label('Sampai Tanggal')
+                        ->native(false),
+                ])
+                ->columns(2)
+        ];
+    }
 
     public function submit(): void
     {
         $data = $this->form->getState();
 
-        if (!isset($data['startDate']) || !isset($data['endDate'])) {
+        if (!$data['startDate'] || !$data['endDate']) {
             session()->flash('error', 'Tanggal awal dan akhir harus diisi.');
             return;
         }
@@ -69,7 +64,6 @@ class Dashboard extends Page implements Forms\Contracts\HasForms
         Session::put('dashboard_end_date', $data['endDate']);
 
         session()->flash('success', 'Filter tanggal berhasil diterapkan!');
-
         $this->redirect(request()->header('Referer') ?? route('filament.pages.dashboard'));
     }
 
@@ -78,12 +72,11 @@ class Dashboard extends Page implements Forms\Contracts\HasForms
         Session::forget(['dashboard_start_date', 'dashboard_end_date']);
 
         $this->form->fill([
-            'startDate' => now()->startOfMonth()->toDateString(),
-            'endDate' => now()->endOfMonth()->toDateString(),
+            'startDate' => null,
+            'endDate' => null,
         ]);
 
-        session()->flash('success', 'Filter telah direset ke default.');
-
+        session()->flash('success', 'Filter telah direset. Data tidak akan ditampilkan.');
         $this->redirect(request()->header('Referer') ?? route('filament.pages.dashboard'));
     }
 
@@ -96,6 +89,6 @@ class Dashboard extends Page implements Forms\Contracts\HasForms
             return 'Dashboard (' . Carbon::parse($start)->format('d M Y') . ' - ' . Carbon::parse($end)->format('d M Y') . ')';
         }
 
-        return 'Dashboard';
+        return 'Dashboard (-)';
     }
 }

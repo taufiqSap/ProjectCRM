@@ -3,6 +3,8 @@
 namespace App\Filament\Widgets;
 
 use Illuminate\Support\Facades\DB;
+use Filament\Widgets\StatsOverviewWidget as BaseWidget;
+use Filament\Widgets\StatsOverviewWidget\Stat;
 use Filament\Widgets\ChartWidget;
 
 class ChartTeknisi extends ChartWidget
@@ -18,6 +20,14 @@ class ChartTeknisi extends ChartWidget
     {
         $start = session('dashboard_start_date');
         $end = session('dashboard_end_date');
+
+          if (!$start || !$end) {
+            return [
+                Stat::make('Total Transaction', '-'),
+                Stat::make('Total Customer', '-'),
+                Stat::make('Average Amount / Transaction', '-'),
+            ];
+        }
 
         // Subquery untuk ambil invoice unik per teknisi
         $subQuery = DB::table('orders as o')

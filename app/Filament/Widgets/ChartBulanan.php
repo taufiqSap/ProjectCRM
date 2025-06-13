@@ -3,6 +3,8 @@
 namespace App\Filament\Widgets;
 
 use Filament\Widgets\ChartWidget;
+use Filament\Widgets\StatsOverviewWidget as BaseWidget;
+use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\DB;
 
 class ChartBulanan extends ChartWidget
@@ -19,7 +21,13 @@ class ChartBulanan extends ChartWidget
         $start = session('dashboard_start_date') ?? now()->startOfMonth()->toDateString();
         $end = session('dashboard_end_date') ?? now()->endOfMonth()->toDateString();
         
-
+          if (!$start || !$end) {
+            return [
+                Stat::make('Total Transaction', '-'),
+                Stat::make('Total Customer', '-'),
+                Stat::make('Average Amount / Transaction', '-'),
+            ];
+        }
 
         $uniqueInvoices = DB::table('orders')
         ->join('order_details', 'orders.order_detail_id', '=', 'order_details.id')

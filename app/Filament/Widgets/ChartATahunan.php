@@ -3,6 +3,8 @@
 namespace App\Filament\Widgets;
 
 use Filament\Widgets\ChartWidget;
+use Filament\Widgets\StatsOverviewWidget as BaseWidget;
+use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\DB;
 
 class ChartATahunan extends ChartWidget
@@ -13,6 +15,14 @@ class ChartATahunan extends ChartWidget
     {
         $start = session('dashboard_start_date');
         $end = session('dashboard_end_date');
+
+          if (!$start || !$end) {
+            return [
+                Stat::make('Total Transaction', '-'),
+                Stat::make('Total Customer', '-'),
+                Stat::make('Average Amount / Transaction', '-'),
+            ];
+        }
 
         // Subquery: Ambil invoice unik dengan total_amount per tahun
         $uniqueInvoices = DB::table('orders as o')
@@ -66,3 +76,6 @@ class ChartATahunan extends ChartWidget
         return 'bar';
     }
 }
+
+
+
