@@ -30,5 +30,11 @@ return [
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
+    
+    'whatsapp' => [
+    'url' => env('WHATSAPP_API_URL', 'https://app.saungwa.com/api/create-message'),
+    'authkey' => env('WHATSAPP_API_KEY'),
+    'appkey' => env('WHATSAPP_APP_KEY'),
+],
 
 ];
